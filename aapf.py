@@ -80,27 +80,43 @@ def fundamental_analysis_engine(metrics):
     elif final_score >= 50: verdict = "⚠️ Hold / Avoid"
     else: verdict = "❌ Avoid"
     return final_score, verdict
+def clean_yf_data(df):
+    if df.empty:
+        return None
+
+    # Flatten multi-index columns if present
+    df.columns = [col[0] if isinstance(col, tuple) else col for col in df.columns]
+
+    # Ensure 'Close' exists
+    if 'Close' not in df.columns:
+        return None
+
+    # Drop rows with missing 'Close'
+    df.dropna(subset=['Close'], inplace=True)
+
+    # Reset index to avoid weird multi-index from yfinance
+    df.reset_index(drop=True, inplace=True)
+
+    return df if not df.empty else None
 def get_technical_indicators(ticker, period="6mo", interval="1d"):
-    df = yf.download(ticker, period=period, interval=interval, progress=False)
-    df.dropna(inplace=True)
-    
-    close = df["Close"].astype(float)
-    
-    # Ensure proper Series output
-    df["RSI"] = ta.momentum.RSIIndicator(close=close).rsi().astype(float)
+    df_raw = yf.download(ticker, period=period, interval=interval, progress=False)
+    df = clean_yf_data(df_raw)
+    if df is None:
+        raise ValueError("Downloaded data is invalid or empty.")
+
+    close = df["Close"]
+
+    # Calculate indicators safely
+    df["RSI"] = ta.momentum.RSIIndicator(close=close).rsi().values.flatten()
     macd_calc = ta.trend.MACD(close=close)
-    df["MACD"] = macd_calc.macd().astype(float)
-    df["MACD_signal"] = macd_calc.macd_signal().astype(float)
-    df["50DMA"] = ta.trend.SMAIndicator(close=close, window=50).sma_indicator().astype(float)
-    df["200DMA"] = ta.trend.SMAIndicator(close=close, window=200).sma_indicator().astype(float)
-    
-    # Volume Spike logic
+    df["MACD"] = macd_calc.macd().values.flatten()
+    df["MACD_signal"] = macd_calc.macd_signal().values.flatten()
+    df["50DMA"] = ta.trend.SMAIndicator(close=close, window=50).sma_indicator().values.flatten()
+    df["200DMA"] = ta.trend.SMAIndicator(close=close, window=200).sma_indicator().values.flatten()
     df["AvgVolume20"] = df["Volume"].rolling(20).mean()
     df["VolumeSpike"] = df["Volume"] > 1.5 * df["AvgVolume20"]
 
-    # Reset any accidental MultiIndex
-    df = df.reset_index(drop=True)
-    return df.dropna().copy()
+    return df.dropna()
 
 def detect_support_resistance(df):
     recent_high = df['Close'].rolling(window=20).max().iloc[-1]
