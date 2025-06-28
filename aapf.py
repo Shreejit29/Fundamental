@@ -83,27 +83,24 @@ def fundamental_analysis_engine(metrics):
 def get_technical_indicators(ticker, period="6mo", interval="1d"):
     df = yf.download(ticker, period=period, interval=interval, progress=False)
     df.dropna(inplace=True)
-
-    # RSI
-    df["RSI"] = ta.momentum.RSIIndicator(close=df["Close"]).rsi()
-
-    # MACD
-    macd = ta.trend.MACD(close=df["Close"])
-    df["MACD"] = macd.macd()
-    df["MACD_signal"] = macd.macd_signal()
-
-    # 50 DMA
-    df["50DMA"] = ta.trend.SMAIndicator(close=df["Close"], window=50).sma_indicator()
-
-    # 200 DMA
-    df["200DMA"] = ta.trend.SMAIndicator(close=df["Close"], window=200).sma_indicator()
-
-    # Volume spike detection
+    
+    close = df["Close"].astype(float)
+    
+    # Ensure proper Series output
+    df["RSI"] = ta.momentum.RSIIndicator(close=close).rsi().astype(float)
+    macd_calc = ta.trend.MACD(close=close)
+    df["MACD"] = macd_calc.macd().astype(float)
+    df["MACD_signal"] = macd_calc.macd_signal().astype(float)
+    df["50DMA"] = ta.trend.SMAIndicator(close=close, window=50).sma_indicator().astype(float)
+    df["200DMA"] = ta.trend.SMAIndicator(close=close, window=200).sma_indicator().astype(float)
+    
+    # Volume Spike logic
     df["AvgVolume20"] = df["Volume"].rolling(20).mean()
     df["VolumeSpike"] = df["Volume"] > 1.5 * df["AvgVolume20"]
 
+    # Reset any accidental MultiIndex
+    df = df.reset_index(drop=True)
     return df.dropna().copy()
-
 
 def detect_support_resistance(df):
     recent_high = df['Close'].rolling(window=20).max().iloc[-1]
