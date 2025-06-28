@@ -80,19 +80,30 @@ def fundamental_analysis_engine(metrics):
     elif final_score >= 50: verdict = "⚠️ Hold / Avoid"
     else: verdict = "❌ Avoid"
     return final_score, verdict
-
 def get_technical_indicators(ticker, period="6mo", interval="1d"):
     df = yf.download(ticker, period=period, interval=interval, progress=False)
     df.dropna(inplace=True)
-    df['RSI'] = ta.momentum.RSIIndicator(df['Close']).rsi()
-    macd = ta.trend.MACD(df['Close'])
-    df['MACD'] = macd.macd()
-    df['MACD_signal'] = macd.macd_signal()
-    df['50DMA'] = ta.trend.SMAIndicator(df['Close'], window=50).sma_indicator()
-    df['200DMA'] = ta.trend.SMAIndicator(df['Close'], window=200).sma_indicator()
-    df['AvgVolume20'] = df['Volume'].rolling(20).mean()
-    df['VolumeSpike'] = df['Volume'] > 1.5 * df['AvgVolume20']
+
+    # RSI
+    df["RSI"] = ta.momentum.RSIIndicator(close=df["Close"]).rsi()
+
+    # MACD
+    macd = ta.trend.MACD(close=df["Close"])
+    df["MACD"] = macd.macd()
+    df["MACD_signal"] = macd.macd_signal()
+
+    # 50 DMA
+    df["50DMA"] = ta.trend.SMAIndicator(close=df["Close"], window=50).sma_indicator()
+
+    # 200 DMA
+    df["200DMA"] = ta.trend.SMAIndicator(close=df["Close"], window=200).sma_indicator()
+
+    # Volume spike detection
+    df["AvgVolume20"] = df["Volume"].rolling(20).mean()
+    df["VolumeSpike"] = df["Volume"] > 1.5 * df["AvgVolume20"]
+
     return df.dropna().copy()
+
 
 def detect_support_resistance(df):
     recent_high = df['Close'].rolling(window=20).max().iloc[-1]
