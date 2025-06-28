@@ -80,24 +80,6 @@ def fundamental_analysis_engine(metrics):
     elif final_score >= 50: verdict = "⚠️ Hold / Avoid"
     else: verdict = "❌ Avoid"
     return final_score, verdict
-def clean_yf_data(df):
-    if df is None or df.empty:
-        return None
-
-    # Flatten MultiIndex columns (e.g., from group_by="ticker")
-    if isinstance(df.columns, pd.MultiIndex):
-        df.columns = [col[0] if isinstance(col, tuple) else col for col in df.columns]
-
-    # Ensure 'Close' column exists and isn't all NaN
-    if 'Close' not in df.columns or df['Close'].isnull().all():
-        return None
-
-    # Drop rows with missing Close
-    df.dropna(subset=['Close'], inplace=True)
-    df.reset_index(drop=True, inplace=True)
-
-    return df if not df.empty else None
-
 def get_technical_indicators(ticker, period="6mo", interval="1d"):
     try:
         df_raw = yf.download(ticker, period=period, interval=interval, progress=False, auto_adjust=False)
@@ -139,6 +121,25 @@ def get_technical_indicators(ticker, period="6mo", interval="1d"):
     except Exception as e:
         print(f"❌ Error in {ticker}: {e}")
         return None
+def clean_yf_data(df):
+    if df is None or df.empty:
+        return None
+
+    # Flatten MultiIndex columns (e.g., from group_by="ticker")
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = [col[0] if isinstance(col, tuple) else col for col in df.columns]
+
+    # Ensure 'Close' column exists and isn't all NaN
+    if 'Close' not in df.columns or df['Close'].isnull().all():
+        return None
+
+    # Drop rows with missing Close
+    df.dropna(subset=['Close'], inplace=True)
+    df.reset_index(drop=True, inplace=True)
+
+    return df if not df.empty else None
+
+
 
 def detect_support_resistance(df):
     recent_high = df['Close'].rolling(window=20).max().iloc[-1]
