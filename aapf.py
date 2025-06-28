@@ -81,20 +81,19 @@ def fundamental_analysis_engine(metrics):
     else: verdict = "❌ Avoid"
     return final_score, verdict
 def clean_yf_data(df):
-    if df.empty:
+    if df is None or df.empty:
         return None
 
-    # Flatten multi-index columns if present
-    df.columns = [col[0] if isinstance(col, tuple) else col for col in df.columns]
+    # Flatten MultiIndex columns (e.g., from group_by="ticker")
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = [col[0] if isinstance(col, tuple) else col for col in df.columns]
 
-    # Ensure 'Close' exists
-    if 'Close' not in df.columns:
+    # Ensure 'Close' column exists and isn't all NaN
+    if 'Close' not in df.columns or df['Close'].isnull().all():
         return None
 
-    # Drop rows with missing 'Close'
+    # Drop rows with missing Close
     df.dropna(subset=['Close'], inplace=True)
-
-    # Reset index to avoid weird multi-index from yfinance
     df.reset_index(drop=True, inplace=True)
 
     return df if not df.empty else None
@@ -103,8 +102,10 @@ def get_technical_indicators(ticker, period="6mo", interval="1d"):
     try:
         df_raw = yf.download(ticker, period=period, interval=interval, progress=False, auto_adjust=False)
         df = clean_yf_data(df_raw)
-        if df is None or len(df) < 100:
-            raise ValueError("Downloaded or cleaned data is invalid or too short.")
+
+        if df is None or len(df) < 60:
+            print(f"⚠️ Skipping {ticker} — not enough data after cleaning.")
+            return None
 
         close = df["Close"].astype(float)
 
@@ -117,24 +118,27 @@ def get_technical_indicators(ticker, period="6mo", interval="1d"):
         df["MACD"] = macd_calc.macd().values.flatten()
         df["MACD_signal"] = macd_calc.macd_signal().values.flatten()
 
-        # 50DMA and 200DMA
+        # 50/200 Day Moving Averages
         df["50DMA"] = ta.trend.SMAIndicator(close=close, window=50).sma_indicator().values.flatten()
         df["200DMA"] = ta.trend.SMAIndicator(close=close, window=200).sma_indicator().values.flatten()
 
-        # Volume spike detection
-        if 'Volume' in df.columns:
+        # Volume-related indicators
+        if 'Volume' in df.columns and not df['Volume'].isnull().all():
             df["AvgVolume20"] = df["Volume"].rolling(20).mean()
             df["VolumeSpike"] = df["Volume"] > 1.5 * df["AvgVolume20"]
         else:
             df["VolumeSpike"] = False
 
-        # Drop any remaining NaNs from indicator computation
         df.dropna(inplace=True)
+        if df.empty or len(df) < 10:
+            print(f"⚠️ Indicator computation left {ticker} with too little data.")
+            return None
 
         return df.reset_index(drop=True)
 
     except Exception as e:
-        raise ValueError(f"Technical indicator computation failed for {ticker}: {e}")
+        print(f"❌ Error in {ticker}: {e}")
+        return None
 
 def detect_support_resistance(df):
     recent_high = df['Close'].rolling(window=20).max().iloc[-1]
