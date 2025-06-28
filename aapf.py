@@ -80,6 +80,25 @@ def fundamental_analysis_engine(metrics):
     elif final_score >= 50: verdict = "⚠️ Hold / Avoid"
     else: verdict = "❌ Avoid"
     return final_score, verdict
+def clean_yf_data(df):
+    if df.empty:
+        return None
+
+    # Flatten multi-index columns if present
+    df.columns = [col[0] if isinstance(col, tuple) else col for col in df.columns]
+
+    # Ensure 'Close' exists
+    if 'Close' not in df.columns:
+        return None
+
+    # Drop rows with missing 'Close'
+    df.dropna(subset=['Close'], inplace=True)
+
+    # Reset index to avoid weird multi-index from yfinance
+    df.reset_index(drop=True, inplace=True)
+
+    return df if not df.empty else None
+
 def get_technical_indicators(ticker, period="6mo", interval="1d"):
     try:
         df_raw = yf.download(ticker, period=period, interval=interval, progress=False, auto_adjust=False)
@@ -116,26 +135,6 @@ def get_technical_indicators(ticker, period="6mo", interval="1d"):
 
     except Exception as e:
         raise ValueError(f"Technical indicator computation failed for {ticker}: {e}")
-
-def clean_yf_data(df):
-    if df.empty:
-        return None
-
-    # Flatten multi-index columns if present
-    df.columns = [col[0] if isinstance(col, tuple) else col for col in df.columns]
-
-    # Ensure 'Close' exists
-    if 'Close' not in df.columns:
-        return None
-
-    # Drop rows with missing 'Close'
-    df.dropna(subset=['Close'], inplace=True)
-
-    # Reset index to avoid weird multi-index from yfinance
-    df.reset_index(drop=True, inplace=True)
-
-    return df if not df.empty else None
-
 
 def detect_support_resistance(df):
     recent_high = df['Close'].rolling(window=20).max().iloc[-1]
