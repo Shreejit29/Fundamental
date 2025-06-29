@@ -344,10 +344,7 @@ preset = st.sidebar.selectbox(
 )
 
 if run_bulk:
-    stock_list = [
-    s.strip().upper()
-    for s in st.sidebar.text_area(...).split(",")
-    if s.strip()]
+    
     stock_list = st.sidebar.text_area(
         "Enter NSE tickers (comma-separated):",
         value="TCS.NS,INFY.NS,HDFCBANK.NS,RELIANCE.NS,DMART.NS"
