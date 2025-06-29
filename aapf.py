@@ -366,8 +366,8 @@ if run_bulk:
                     entry_details = {
                     "RSI < 35": int(rsi < 35),
                     "MACD > Signal": int(macd_diff > 0),
-                    "Above 50DMA": int(df['Close'].iloc[-1] > df['50DMA'].iloc[-1]),
-                    "Above 200DMA": int(df['Close'].iloc[-1] > df['200DMA'].iloc[-1]),
+                    "Above 50EMA": int(df['Close'].iloc[-1] > df['EMA_50'].iloc[-1]),
+                    "Above 200EMA": int(df['Close'].iloc[-1] > df['EMA_200'].iloc[-1]),
                     "Support Zone": int(s_r_label == "✅ Near Support"),
                     "Volume Spike": int(df['VolumeSpike'].iloc[-1])}
                     entry_score = sum(entry_details.values())
