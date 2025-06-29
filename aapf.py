@@ -359,7 +359,7 @@ if run_bulk:
                 try:
                     metrics = fetch_stock_metrics_yahoo(ticker)
                     f_score, _ = fundamental_analysis_engine(metrics)
-                    df = get_technical_indicators(ticker)
+                    df = fetch_and_compute(ticker)
                     s_r_label, support, resistance = detect_support_resistance(df)
                     rsi = df['RSI'].iloc[-1]
                     macd_diff = df['MACD'].iloc[-1] - df['MACD_signal'].iloc[-1]
@@ -456,6 +456,15 @@ if single_ticker:
             final_score, verdict = calculate_final_score(
                 f_score, entry_score, expected_return, buzz['Buzz Verdict'], s_r_label
             )
+            # Expected return scoring
+            if expected_return is None:
+                return_score = 0  # ✅ Safe fallback
+            elif expected_return >= 15:
+                return_score = 15
+            elif expected_return >= 10:
+                return_score = 5
+            else:
+                return_score = 0  # ✅ Ensure it's always defined
 
             # ✅ Final output
             st.markdown(f"### 🧾 Final Verdict: {verdict}")
