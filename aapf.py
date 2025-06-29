@@ -315,13 +315,8 @@ def calculate_final_score(f_score, e_score, expected_return, buzz_verdict, s_r_l
         verdict = "❌ Avoid"
 
     # Return score breakdown for debugging/logging if needed
-    return final_stock_score, verdict, {
-        'Fundamental': round(f_score * weights['fundamental'], 2),
-        'Entry': round(entry_weighted, 2),
-        'Return': return_score,
-        'Buzz Penalty': buzz_penalty,
-        'Resistance Penalty': resistance_penalty
-    }
+    return final_score, verdict, score_breakdown_dict
+
 
 
 # =============================
@@ -370,10 +365,8 @@ if run_bulk:
 
                     buzz = detect_buzz_signals(df, ticker)
                     expected_return = 18
-                    final_score, verdict = calculate_final_score(
-                        f_score, entry_score, expected_return,
-                        buzz['Buzz Verdict'], s_r_label
-                    )
+                    final_score, verdict, score_breakdown = calculate_final_score(f_score, entry_score, expected_return, buzz['Buzz Verdict'], s_r_label)
+
                     results.append({
                         "Ticker": ticker,
                         "Smart Score": final_score,
