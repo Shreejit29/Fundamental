@@ -267,25 +267,19 @@ def detect_buzz_signals(df, ticker):
             "Trends Score": 0,
             "Buzz Verdict": "❌ Unable to detect"
         }
-
 def calculate_final_score(f_score, e_score, expected_return, buzz_verdict, s_r_label):
-    # Scale entry score (max 6) to 100 and weight it
+    # Define weights
     weights = {
-    'fundamental': 0.40,
-    'entry': 0.20,
-    'return': 0.15,
-    'buzz_penalty': -15,
-    'resistance_penalty': -10}
+        'fundamental': 0.40,
+        'entry': 0.20,
+        'return': 0.15,
+        'buzz_penalty': -15,
+        'resistance_penalty': -10
+    }
 
+    # Scale entry score
     entry_scaled = min(e_score * (100 / 6), 100)
-
     entry_weighted = entry_scaled * weights['entry']
-    final_stock_score = (
-    f_score * weights['fundamental'] +
-    entry_weighted +
-    return_score +
-    (weights['buzz_penalty'] if "⚠️" in buzz_verdict else 0) +
-    (weights['resistance_penalty'] if "Resistance" in s_r_label else 0))
 
     # Expected return scoring
     if expected_return >= 15:
@@ -296,12 +290,12 @@ def calculate_final_score(f_score, e_score, expected_return, buzz_verdict, s_r_l
         return_score = 0
 
     # Penalties
-    buzz_penalty = -15 if "⚠️" in buzz_verdict else 0
-    resistance_penalty = -10 if "Resistance" in s_r_label else 0
+    buzz_penalty = weights['buzz_penalty'] if "⚠️" in buzz_verdict else 0
+    resistance_penalty = weights['resistance_penalty'] if "Resistance" in s_r_label else 0
 
-    # Final weighted sum
+    # Final score calculation
     final_stock_score = (
-        f_score * 0.40 +
+        f_score * weights['fundamental'] +
         entry_weighted +
         return_score +
         buzz_penalty +
@@ -310,7 +304,7 @@ def calculate_final_score(f_score, e_score, expected_return, buzz_verdict, s_r_l
 
     final_stock_score = max(0, round(final_stock_score, 2))
 
-    # Verdict based on score
+    # Verdict
     if final_stock_score >= 80:
         verdict = "🔥 Excellent – Invest"
     elif final_stock_score >= 65:
@@ -320,12 +314,14 @@ def calculate_final_score(f_score, e_score, expected_return, buzz_verdict, s_r_l
     else:
         verdict = "❌ Avoid"
 
+    # Return score breakdown for debugging/logging if needed
     return final_stock_score, verdict, {
-    'Fundamental': f_score * 0.40,
-    'Entry': entry_weighted,
-    'Return': return_score,
-    'Buzz Penalty': buzz_penalty,
-    'Resistance Penalty': resistance_penalty}
+        'Fundamental': round(f_score * weights['fundamental'], 2),
+        'Entry': round(entry_weighted, 2),
+        'Return': return_score,
+        'Buzz Penalty': buzz_penalty,
+        'Resistance Penalty': resistance_penalty
+    }
 
 
 # =============================
