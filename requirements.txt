@@ -1,5 +1,7 @@
 streamlit
 pandas
-yfinance
-ta
-pytrends
+numpy
+datetime
+sklearn
+io
+plotly
